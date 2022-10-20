@@ -1,0 +1,26 @@
+---
+title: "EAS508-HW4"
+author: "Saish Mandavkar"
+date: "2022-10-20"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Lab Code Homework
+
+## 5.3 Cross Validation Labs
+
+### 5.3.1 Validation Set Approach
+
+```{r}
+
+# Setting the seed and loading the data
+
+library(ISLR2)
+set.seed(1)
+train <- sample(392,196)
+
+```
