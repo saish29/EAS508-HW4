@@ -24,3 +24,112 @@ set.seed(1)
 train <- sample(392,196)
 
 ```
+
+```{r}
+
+# Fitting a linear regression on the train data using subset option
+
+lm.fit <- lm(mpg ~ horsepower, data = Auto, subset = train)
+```
+
+```{r}
+
+# Predicting the estimates for the 392 observations and calculate the MSE for 192 observations 
+
+mean((Auto$mpg - predict(lm.fit, Auto))[-train]^2)
+```
+
+```{r}
+
+# Fitting cubic regression and calculating the MSE
+
+lm.fit2 <- lm(mpg ~poly(horsepower, 2), data = Auto, subset = train)
+
+mean((Auto$mpg - predict(lm.fit2, Auto))[-train]^2)
+```
+
+```{r}
+
+# Fitting uadratic regression and calculating the MSE
+
+lm.fit3 <- lm(mpg ~ poly(horsepower, 3), data = Auto, subset = train)
+
+mean((Auto$mpg - predict(lm.fit3, Auto))[-train]^2)
+```
+
+```{r}
+
+# Using different seed and calculatiing the values for all the three regressions - will result into different MSE values.
+
+set.seed(2)
+train <- sample(392,196)
+
+# Linear regression MSE 
+
+lm.fit <- lm(mpg ~ horsepower, data = Auto, subset = train)
+
+mean((Auto$mpg - predict(lm.fit, Auto))[-train]^2) 
+
+# Cubic regression MSE
+
+lm.fit2 <- lm(mpg ~poly(horsepower, 2), data = Auto, subset = train)
+
+mean((Auto$mpg - predict(lm.fit2, Auto))[-train]^2)
+
+# Quadratic regression MSE
+
+
+lm.fit3 <- lm(mpg ~poly(horsepower, 3), data = Auto, subset = train)
+
+mean((Auto$mpg - predict(lm.fit3, Auto))[-train]^2)
+
+```
+
+### 5.3.2 Leave One-Out Cross-Validation
+
+```{r}
+
+# LOOCV using glm() package
+
+glm.fit <- glm(mpg ~ horsepower, data = Auto)
+
+coef(glm.fit)
+```
+
+```{r}
+
+# LOOCV using normal lm() function
+
+lm.fit <- lm(mpg ~ horsepower, data = Auto)
+
+coef(lm.fit)
+```
+
+```{r}
+
+# Cross-validation error using glm() package
+
+library(boot)
+
+glm.fit <- glm(mpg ~ horsepower, data = Auto)
+
+cv.err <- cv.glm(Auto, glm.fit)
+
+cv.err$delta
+```
+
+```{r}
+
+# Calculating CV error for for polynomial of order 1 to 10 using a for loop.
+
+cv.error <- rep(0,10)
+
+for (i in  1:10) {
+  
+  glm.fit <- glm(mpg ~ poly(horsepower, i), data = Auto)
+  cv.error[i] <- cv.glm(Auto, glm.fit)$delta[1]
+  
+}
+
+cv.error
+```
