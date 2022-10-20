@@ -134,7 +134,7 @@ for (i in  1:10) {
 cv.error
 ```
 
-### 5.3.2 k-Fold Cross Validation 
+### 5.3.3 k-Fold Cross Validation
 
 ```{r}
 
@@ -154,49 +154,4 @@ cv.error.10
 
 ```
 
-### 5.3.4 The Bootstrap
-
-#### Estimating the accuracy of a Statistic of Interest
-
-```{r}
-
-# Creating a function alpha.fn() and which takes in X, Y values and the vector indicating which observations to be used and outputs alpha based on selected observations
-
-alpha.fn <- function(data, index) {
-  
-  X <- data$X[index]
-  Y <- data$Y[index]
-  
-  (var(Y) - cov(X,Y)) / (var(X) + var(Y) - 2 * cov(X,Y))
-}
-```
-
-```{r}
-
-# Using the function on the portfolio database
-
-alpha.fn(Portfolio, 1:100)
-```
-
-```{r}
-
-# Using sample() function to create a new bootstrap dataset out of Portfolio
-
-set.seed(7)
-
-alpha.fn(Portfolio, sample(100, 100, replace = TRUE))
-```
-
-```{r}
-
-# Performing bootstrap analysis using boot() for R = 1000
-
-boot(Portfolio, alpha.fn, R = 1000)
-```
-
-#### Estimating the accuracy of a Linear Regression Model 
-
-```{r}
-
-
-```
+## 6.5.3 PCR and PLS Regression
