@@ -372,3 +372,172 @@ gam.lr.s <- gam( I(wage > 250) ~ year + s(age, df = 5) + education, family = bin
 par(mfrow = c(1,3))
 plot(gam.lr.s, se = TRUE, col = "green")
 ```
+
+## 5.4 Q8 - Perform cross-validation on a simulated data set.
+
+**(a) Generate a simulated data set as follows:**
+
+```{r}
+
+# Generate a simulated data set
+
+set.seed(1)
+
+x <- rnorm(100)
+y <- x - 2 * x^2 + rnorm(100)
+```
+
+As we have one predictor coefficient and 100 observations (as rnorm(100) is used) , our **n = 1** and **p = 100**
+
+Our equation will be ***Y = x - 2x\^2 + e***
+
+**(b) Create a scatterplot of X against Y. Comment on what you find.**
+
+```{r}
+
+# Scatterplot of X against Y. 
+
+
+
+myfun <- function(x) {
+  x - 2 * x^2
+  
+}
+
+# Using ggplot2 to plot a scatterplot
+
+library(ggplot2)
+
+ggplot(mapping  = aes(x = x,y = y)) +
+  geom_point(colour = "blue") + 
+  geom_smooth(method = "lm", formula = "y ~ x + I(x^2)", se = FALSE, colour = "orange")
+  
+  
+# 
+```
+
+As we can see, our equation creates a concave down parabola and and we can notice a little bit of noise at the vertex of our parabola. The points with the support of our curve also suggests the existence of a curved relationship which hints to a quadratic relationship.
+
+**(c) Set a random seed, and then compute then LOOCV errors that result from fitting the following four models using least squares:**
+
+As we can see from all the models, they start from polynomial order 1 to order 4, so we can use a loop to compute all the LOOCV errors.
+
+Let's create a data frame out of our x and y values.
+
+```{r}
+
+# Creating a data frame using random seed
+
+set.seed(25)
+
+data <- data.frame(x = x, y = y)
+```
+
+```{r}
+
+# Computing LOOCV errors from polynomial order 1 to 4. 
+
+loocv.error <- rep(0,4)
+
+for (i in  1:4) {
+  
+  glm.fit <- glm(y ~ poly(x, i), data = data)
+  loocv.error[i] <- cv.glm(data, glm.fit)$delta[1]
+  
+}
+
+poly_order <- c("Order 1", "Order 2", "Order 3", "Order 4")
+
+
+setNames(loocv.error, poly_order)
+```
+
+**(d) Repeat (c) using another random seed, and report your results. Are your results the same as what you got in (c)? Why?**
+
+```{r}
+
+# Changing seed and repeating the steps
+
+set.seed(50)
+
+loocv.error <- rep(0,4)
+
+for (i in  1:4) {
+  
+  glm.fit <- glm(y ~ poly(x, i), data = data)
+  loocv.error[i] <- cv.glm(data, glm.fit)$delta[1]
+  
+}
+
+poly_order <- c("Order 1", "Order 2", "Order 3", "Order 4")
+
+
+setNames(loocv.error, poly_order)
+
+```
+
+We get exact same error values with a random seed and this is because in LOOCV there is no element of randomness i.e. we will always have the same LOOCV error values every time.
+
+**(e) Which of the models in (c) had the smallest LOOCV error? Is that what you expected? Explain your answer.**
+
+We see that the the lowest value of LOOCV error is at Order 2 which is **0.937** which is not much surprising to see as the scatter plot which we created in (b) already hinted to a quadratic relationship.
+
+**(f) Comment on the statistical significance of the coefficient estimates that results from fitting each of the models in (c) using least squares. Do these results agree with the conclusions drawn based on the cross-validation results ?**
+
+```{r}
+
+# Looking at coefficients significants for all the order models, can be seen in order 4 polynomial regression
+
+glm.fit4 <- glm(y ~ poly(x, 4), data = data)
+
+summary(glm.fit)
+
+
+```
+
+## 6.6 Q9 - Predict the number of applications received using the other variables in the `College` data set. 
+
+**(a) Split the data set into a training set and a test set.**
+
+```{r}
+
+# Cleaning data and splitting the dataset into train and test data 
+
+# Loading the necessary packages
+
+library(ISLR)
+library(glmnet)
+library(pls)
+
+# Removing NA values
+
+College <- na.omit(College)
+
+
+set.seed(49)
+
+train_index <- sample(1:dim(College)[1], dim(College)[1] / 2)
+test_index <- (-train_index)
+
+train <- College[train_index, ]
+test <- College[test_index, ]
+
+train
+```
+
+**(b) Fit a linear model using least squares on the training set, and report the test error obtained.**
+
+```{r}
+
+# Fitting a linear model 
+
+lm.fit <- lm(Apps ~ ., data = train)
+
+# Predicting the values
+
+lm.pred <- predict(lm.fit, test)
+
+lm.mse <- mean((lm.pred - test$Apps)^2)
+
+lm.mse
+```
