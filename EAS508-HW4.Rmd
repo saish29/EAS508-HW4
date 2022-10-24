@@ -521,7 +521,7 @@ samp <- sample(c(TRUE, FALSE), nrow(College), replace = TRUE, prob = c(0.7,0.3))
 train <- College[samp, ]
 test <- College[!samp, ]
 
-
+y_test <- test$Apps
 ```
 
 **(b) Fit a linear model using least squares on the training set, and report the test error obtained.**
@@ -536,12 +536,35 @@ lm.fit <- lm(Apps ~ ., data = train)
 
 # Predicting the values
 
-lm.mse <- mean((lm.pred - test$Apps)^2)
+lm.pred <- predict(lm.fit, test)
+
+lm.mse <- mean((lm.pred - y_test)^2)
 
 lm.mse
 ```
 
-#### (c) Ridge Regression Model 
+```{r}
+
+# Writing a function to calculate the R^2 value
+
+R_square <- function(y, y_pred) {
+  
+  y_mean <- mean(y)
+  
+  rss <- sum((y - y_pred)^2)
+  tss <- sum((y - y_mean)^2)
+  
+  return (1 - (rss/tss))
+}
+
+# Calulcation R^2 value for Linear Model 
+
+lm.r2 <- R_square(y_test, lm.pred)
+
+lm.r2
+```
+
+#### (c) Ridge Regression Model
 
 ```{r}
 
@@ -555,7 +578,7 @@ y_train <- train$Apps
 
 test_mat <- model.matrix(test$Apps ~ ., data = test)
 
-y_test <- test$Apps
+y_testR <- test$Apps
 
 set.seed(20)
 
@@ -583,9 +606,18 @@ ridge.fit
 
 ridge.pred <- predict(ridge.fit, newx = test_mat, s = opt_lambda)
 
-ridge_mse <- mean((ridge.pred - y_test)^2)
+ridge_mse <- mean((ridge.pred - y_testR)^2)
 
 ridge_mse
+```
+
+```{r}
+
+# Calculating R^2 for Ridge regression 
+
+ridge.r2 <- R_square(y_testR, ridge.pred)
+
+ridge.r2
 ```
 
 #### (d) Lasso Model
@@ -620,12 +652,21 @@ lasso.fit
 
 lasso.pred <- predict(lasso.fit, newx = test_mat, s = lasso_lamda)
 
-lasso_mse <- mean((lasso.pred - y_test)^2)
+lasso_mse <- mean((lasso.pred - y_testR)^2)
 
 lasso_mse
 ```
 
-#### (e) PCR model 
+```{r}
+
+# calculation R^2 for Lasso Model
+
+lasso.r2 <- R_square(y_testR, lasso.pred)
+
+lasso.r2
+```
+
+#### (e) PCR model
 
 ```{r}
 
@@ -634,8 +675,6 @@ lasso_mse
 set.seed(20)
 
 pcr.fit <- pcr(Apps ~ ., data = train, scale = TRUE,  validation = "CV")
-
-MSEP(pls.fit, estimate = "CV")$val
 
 # Checking for M value by using validation point
 
@@ -656,7 +695,16 @@ pcr_mse <- mean((pcr.pred - test$Apps)^2)
 pcr_mse
 ```
 
-#### (f) PLS Model 
+```{r}
+
+# Calculating R^2 value for PCR 
+
+pcr.r2 <- R_square(y_test, pcr.pred)
+
+pcr.r2
+```
+
+#### (f) PLS Model
 
 ```{r}
 
@@ -684,16 +732,156 @@ pls_mse
 
 ```{r}
 
-# Merging all the MSEs in a data frame
+# Calculating R^2 value for PLS
 
-mse <- data.frame(method = c("Linear", "Ridge", "Lasso", "PCR", "PLS"), test.MSE = c(lm.mse, ridge_mse, lasso_mse, pcr_mse, pls_mse))
+pls.r2 <- R_square(y_test, pls.pred)
 
-mse
+pls.r2
 ```
 
 ```{r}
 
-msect <- table(mse$test.MSE)
+# Merging all the MSEs in a data frame
 
-msect
+cod <- data.frame(method = c("Linear", "Ridge", "Lasso", "PCR", "PLS"), test.MSE = c(lm.mse, ridge_mse, lasso_mse, pcr_mse, pls_mse), RSquared = c(lm.r2, ridge.r2, lasso.r2, pcr.r2, pls.r2))
+
+cod
 ```
+
+As we can see, the Ridge Regression model gives us the best R\^2 with the value approximately **0.9277,** the other models give a similar R\^2 value of around **0.925.**
+
+## 7.9 Q10 - `College` data set GAMs
+
+**(a) Split the data into a training set and a test set. Using out-of-state tuition as the response and the other variables as the predictors, perform forward stepwise selection on the training set in order to identify a satisfactory model that uses just a subset of the predictors.**
+
+```{r}
+
+# Cleaning data and splitting the dataset into train and test data 
+
+# Loading the necessary packages
+
+library(ISLR)
+library(glmnet)
+library(gam)
+library(leaps)
+
+# Removing NA values
+
+College <- na.omit(College)
+
+
+set.seed(120)
+
+samp <- sample(c(TRUE, FALSE), nrow(College), replace = TRUE, prob = c(0.7,0.3))
+
+train <- College[samp, ]
+test <- College[!samp, ]
+
+
+```
+
+```{r}
+
+# Performing forward stepwise selection with out of state tution as the response and other variables as predictors 
+
+sub.for <- regsubsets(Outstate ~ ., data = train, nvmax = ncol(College)-1, method = "forward")
+
+sum.for <- summary(sub.for)
+
+# Finding minimum values for Cp and BIC and maximum value for adjusted R2
+
+cp.for <- which.min(sum.for$cp)
+bic.for <- which.min(sum.for$bic)
+ar2.for <- which.max(sum.for$adjr2)
+
+# Plotting using in built plot function of regsubsets()
+
+par(mfrow = c(1,3))
+
+plot(sum.for$bic,xlab="Number of variables",ylab= "BIC value",type="b")
+
+points(bic.for,sum.for$bic[bic.for],col="blue", cex = 2, pch = 20)
+
+plot(sum.for$cp, xlab="Number of variables", ylab= "CP value",type="b", main = "Forward Selection")
+
+points(cp.for, sum.for$cp[cp.for], col="blue", cex = 2, pch = 20)
+
+plot(sum.for$adjr2, xlab="Number of variables", ylab= "Adjusted RS",type="b")
+
+points(ar2.for, sum.for$adjr2[ar2.for], col="blue", cex = 2, pch = 20)
+
+```
+
+As per our graphs, the best BIC score is 6 but we get 13 for both adjusted R square and Cp scores. We'll go with 6 to get our coefficients.
+
+```{r}
+
+# See coeeficient instances for the best 11-variable models identified by our forward selection 
+
+for.co <- coef(sub.for, 6)
+
+names(for.co)
+
+```
+
+**(b)** Fit a GAM on the training data, using out-of-state tuition as the response and the features selected in the previous step as the predictors. Plot the results, and explain your findings.
+
+```{r}
+
+# Fitting a GAM using the predictors selected from forward step 
+
+gam.fit <- gam(Outstate ~ Private + s(Room.Board, df = 2) + s(PhD, df = 2) + s(perc.alumni, df = 2) + s(Expend, df = 2) + s(Grad.Rate, df = 2), data = train)
+
+par(mfrow = c(2,3))
+
+plot(gam.fit, se = T, col = "blue")
+```
+
+**(c)** **Evaluate the model obtained on the test set, and explain the results obtained**
+
+```{r}
+
+# Predicting the values by passing the test data set
+
+pred.gam <- predict(gam.fit, test)
+
+# Calculating test MSE, RMSE and R2 values 
+
+gam.mse <- mean((pred.gam - test$Outstate)^2)
+
+cat("TEST MSE :", gam.mse, "\n")
+
+gam.rmse <- sqrt(gam.mse)
+
+cat("TEST RMSE :", gam.rmse, "\n")
+
+gam.r2 <- R_square(test$Outstate, pred.gam)
+
+cat("R squared :", gam.r2, "\n")
+```
+
+By performing GAM with the obtained 6 features from forward selection, we get a test RMSE of **2150.879** and R\^2 value of **0.724** approximately.
+
+Let's perform the same with a linear model to compare whether GAM helps us to improvise us or not.
+
+```{r}
+
+# Linear model using the 6 predictors 
+
+lm.pred1 <- predict(lm(Outstate ~ Private + Room.Board + PhD + perc.alumni + Expend + Grad.Rate, data = train), test)
+
+lm.mse <- mean((lm.pred1 - test$Outstate)^2)
+
+cat("TEST MSE :", lm.mse, "\n")
+
+lm.rmse <- sqrt(lm.mse)
+
+cat("TEST RMSE :", lm.rmse, "\n")
+
+lm1.r2 <- R_square(test$Outstate, lm.pred1)
+
+cat("R Squared :", lm1.r2, "\n")
+
+```
+
+As we compare the R squared acquired from our linear model i.e. **0.698,** we definitely improvise using GAM where we achieve higher R\^2 value.
